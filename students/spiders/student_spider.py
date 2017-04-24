@@ -5,7 +5,7 @@
 # @File    : student_spider.py
 # @Project : students
 # @Software: PyCharm
-
+import os
 from enum import Enum
 import scrapy
 
@@ -36,14 +36,35 @@ class StudentSpider(scrapy.Spider):
                                      meta={'sid': i, 'cookiejar': i},
                                      dont_filter=True)
 
-    def parse_user_info(self, response):
+    def _parse_avatar(self, response):
+        self.logger.info('avatar url: {}'.format(response.request.url))
+        student = response.meta['student']
+        first_path = os.path.join('./', student['college'])
+        if not os.path.exists(first_path):
+            os.mkdir(first_path)
+        second_path = os.path.join(first_path, student['class_name'])
+        if not os.path.exists(second_path):
+            os.mkdir(second_path)
+
+        with open(os.path.join(second_path, "{}_{}.jpg".format(student['sid'], student['name'])), 'wb') as f:
+            f.write(response.body)
+        yield student
+
+    def _parse_user_info(self, response):
         student = response.meta['student']
         text_input = response.css('input[type=text]::attr(value)').extract()
         student['tel'] = text_input[0]
         student['email'] = text_input[2]
-        yield student
+        request = scrapy.Request(self.domain + self.avatar_url,
+                                 callback=self._parse_avatar,
+                                 dont_filter=True,
+                                 meta={'sid': response.meta['sid'],
+                             'cookiejar': response.meta['cookiejar']}
+                                 )
+        request.meta['student'] = student
+        yield request
 
-    def parse_user_detail(self, response):
+    def _parse_user_detail(self, response):
         def extract_with_css(query):
             return response.css(query).extract_first(default='null').strip()
 
@@ -57,7 +78,7 @@ class StudentSpider(scrapy.Spider):
         student["class_name"] = extract_with_css('#tblView > tr:nth-child(15) > td:nth-child(4)::text')
 
         request = scrapy.Request(self.domain + self.user_info,
-                                 callback=self.parse_user_info,
+                                 callback=self._parse_user_info,
                                  dont_filter=True,
                                  meta={'sid': response.meta['sid'], 'cookiejar': response.meta['cookiejar']})
         request.meta['student'] = student
@@ -80,6 +101,6 @@ class StudentSpider(scrapy.Spider):
             return
 
         yield scrapy.Request(self.domain + self.user_detail,
-                             callback=self.parse_user_detail,
+                             callback=self._parse_user_detail,
                              dont_filter=True,
                              meta={'sid': response.meta['sid'], 'cookiejar': response.meta['cookiejar']})

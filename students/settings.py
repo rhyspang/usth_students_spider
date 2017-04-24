@@ -97,3 +97,12 @@ HEADERS = {
     "Accept-Encoding": "gzip, deflate",
     "Connection": "keep-alive",
 }
+
+MYSQL_DB_KWARGS = {
+    'db': 'usth',
+    'user': 'root',
+    'password': 'sefd',
+    'host': 'localhost',
+    'use_unicode': True,
+    'charset': 'utf8',
+}
