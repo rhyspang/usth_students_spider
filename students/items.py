@@ -8,7 +8,14 @@
 import scrapy
 
 
-class StudentsItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class StudentItem(scrapy.Item):
+    sid = scrapy.Field()
+    name = scrapy.Field()
+    id = scrapy.Field()
+    gender = scrapy.Field()
+    college = scrapy.Field()
+    class_name = scrapy.Field()
+    nationality = scrapy.Field()
+    tel = scrapy.Field()
+    email = scrapy.Field()
+    avatar = scrapy.Field()
