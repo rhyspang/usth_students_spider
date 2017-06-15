@@ -7,28 +7,82 @@
 
 import pymysql
 
+from students.items import Curriculum, StudentItem
+
 
 class StudentsPipeline(object):
+    def __init__(self, db_config):
+        self.connection = None
+        self.db_config = db_config
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            db_config=crawler.settings.get('MYSQL_DB_KWARGS')
+        )
+
+    def open_spider(self, spider):
+        self.connection = pymysql.connect(**self.db_config)
+
+    def close_spider(self, spider):
+        self.connection.close()
+
     def process_item(self, item, spider):
-        db_config = spider.settings.get('MYSQL_DB_KWARGS')
-        connection = pymysql.connect(**db_config)
-        try:
-            with connection.cursor() as cursor:
-                # Create a new record
-                sql = "INSERT INTO `students` " \
-                      "(`sid`, `name`, `id`, `gender`, " \
-                      "`college`, `class_name`,`nationality`, " \
-                      "`tel`, `email`) " \
-                      "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                cursor.execute(sql, (item['sid'], item['name'], item['id'],
-                                     0 if item['gender'] == '女' else 1, item['college'], item['class_name'],
-                                     item['nationality'], item['tel'], item['email']))
-
-            # connection is not autocommit by default. So you must commit to save
-            # your changes.
-            connection.commit()
-
-        finally:
-            connection.close()
-
+        connection = self.connection
+        with connection.cursor() as cursor:
+            self.save_student(item, cursor)
+            self.save_curriculum(item, cursor)
+        connection.commit()
         return item
+
+    @staticmethod
+    def save_student(item, cursor):
+        if not isinstance(item, StudentItem):
+            return
+
+        if item.get('name') == 'null':
+            return
+
+        sql_insert_item = "INSERT INTO `students_all` " \
+                          "(`sid`, `name`, `id`, `gender`, " \
+                          "`college`, `class_name`,`nationality`, " \
+                          "`tel`, `email`, `password`) " \
+                          "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        sql_insert_sid = "INSERT INTO `students_all`(`sid`) VALUES (%s)"
+        sql_update = "UPDATE `students_all` SET " \
+                     "`id`=%s, `name`=%s, `gender`=%s, " \
+                     "`college`=%s, `class_name`=%s,`nationality`=%s, " \
+                     "`tel`=%s, `email`=%s, `password`=%s " \
+                     "WHERE sid=%s"
+        sql_select = "SELECT * FROM `students_all` WHERE sid=%s"
+
+        cursor.execute(sql_select, (item['sid'],))
+
+        has_record = True if cursor.fetchone() else False
+
+        if item.get('name'):
+            if has_record:
+                cursor.execute(sql_update, [item.get('id'), item.get('name'), item.get('gender'),
+                                            item.get('college'), item.get('class_name'), item.get('nationality'),
+                                            item.get('tel'), item.get('email'), item.get('password'),
+                                            item.get('sid')])
+            else:
+                cursor.execute(sql_insert_item, (item.get('sid'), item.get('name'), item.get('id'),
+                                                 item.get('gender'), item.get('college'), item.get('class_name'),
+                                                 item.get('nationality'), item.get('tel'), item.get('email'),
+                                                 item.get('password')))
+        else:
+            if not has_record:
+                cursor.execute(sql_insert_sid, (item['sid'],))
+
+    @staticmethod
+    def save_curriculum(item, cursor):
+        if not isinstance(item, Curriculum):
+            return
+        sql = "INSERT INTO `curriculum` " \
+              "(`id`, `sid`, `name`, " \
+              "`credit`, `is_compulsory`, `score`) " \
+              "VALUES (%s, %s, %s, %s, %s, %s)"
+
+        cursor.execute(sql, (item['id'], item['sid'], item['name'],
+                             item['credit'], item['is_compulsory'], item['score']))
