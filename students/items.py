@@ -18,4 +18,16 @@ class StudentItem(scrapy.Item):
     nationality = scrapy.Field()
     tel = scrapy.Field()
     email = scrapy.Field()
-    avatar = scrapy.Field()
+    password = scrapy.Field()
+    book_email = scrapy.Field()
+
+
+class Curriculum(scrapy.Item):
+    id = scrapy.Field()
+    sid = scrapy.Field()
+    name = scrapy.Field()
+    credit = scrapy.Field()
+    is_compulsory = scrapy.Field()
+    score = scrapy.Field()
+    term = scrapy.Field()
+    is_new = scrapy.Field()
