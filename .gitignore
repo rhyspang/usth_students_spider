@@ -1,5 +1,5 @@
 /.idea
-.pyc
+*.pyc
 students/__pycache__/
 students/spiders/__pycache__/
 *.json

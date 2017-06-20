@@ -23,7 +23,7 @@ class StudentItem(scrapy.Item):
 
 
 class Curriculum(scrapy.Item):
-    id = scrapy.Field()
+    cid = scrapy.Field()
     sid = scrapy.Field()
     name = scrapy.Field()
     credit = scrapy.Field()

