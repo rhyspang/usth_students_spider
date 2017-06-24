@@ -31,3 +31,4 @@ class Curriculum(scrapy.Item):
     score = scrapy.Field()
     term = scrapy.Field()
     is_new = scrapy.Field()
+    all = scrapy.Field()

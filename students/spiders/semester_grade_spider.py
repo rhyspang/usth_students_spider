@@ -1,20 +1,13 @@
 # -*- coding: utf-8 -*-
-from enum import Enum
 
 import pymysql
 import scrapy
 from students.items import Curriculum
+from students.spiders.student_base_spider import StudentBaseSpider
 
 
-class SemesterGradeSpider(scrapy.Spider):
+class SemesterGradeSpider(StudentBaseSpider):
     name = "semester_grade"
-    allowed_domains = ["60.219.165.24"]
-    start_urls = ['http://60.219.165.24/']
-
-    LOGIN_STATUS = Enum('LOGIN_STATUS', 'SUCCESS WRONG_ID WRONG_PASS')
-
-    domain = 'http://60.219.165.24/'
-    login_url = 'loginAction.do'
     semester_grade_url = 'bxqcjcxAction.do'
     all_grade_url = 'gradeLnAllAction.do?type=ln&oper=fainfo'
 
@@ -45,21 +38,10 @@ class SemesterGradeSpider(scrapy.Spider):
                                        'flag': 'all',
                                        'cookiejar': response.meta['cookiejar']})
 
-    def _check_login_status(self, response):
-        flag_tag = response.css('td[class="errorTop"] font::text').extract_first()
-        if flag_tag is None:
-            return self.LOGIN_STATUS.SUCCESS
-        else:
-            if flag_tag.find(u'证件号不存在') != -1:
-                return self.LOGIN_STATUS.WRONG_ID
-            else:
-                return self.LOGIN_STATUS.WRONG_PASS
-
-    def parse_grades(self, response):
+    @staticmethod
+    def parse_grades(response):
         def extract_with_xpath(root, query):
             return root.xpath(query).extract_first().strip()
-
-        # flag = response.meta['flag']
 
         all_grades = response.xpath('//table[@id="user"]/tr')
         counts = len(all_grades)
@@ -72,21 +54,9 @@ class SemesterGradeSpider(scrapy.Spider):
             curriculum['score'] = extract_with_xpath(grade, 'td[7]/p/text()')
             curriculum['sid'] = response.meta['sid']
             curriculum['all'] = counts
-            # if flag == 'semester':
-            #     curriculum['term'] = 1
-            # self.printhxs(curriculum)
             yield curriculum
 
-        # if flag == 'all':
-        #     yield scrapy.Request(self.domain + self.semester_grade_url,
-        #                          callback=self.parse_grades,
-        #                          dont_filter=True,
-        #                          meta={'sid': response.meta['sid'],
-        #                                'flag': 'semester',
-        #                                'cookiejar': response.meta['cookiejar']})
-
     def get_sids_passwords(self):
-        # return [('2014025744', '123456')]
         sql = "SELECT sid, password FROM `students_all` " \
               "WHERE password IS NOT NULL AND book_email=1;"
         conn = pymysql.connect(**self.settings.get('MYSQL_DB_KWARGS'))

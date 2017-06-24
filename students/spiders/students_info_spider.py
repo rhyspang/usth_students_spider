@@ -6,25 +6,21 @@ import scrapy
 from students.items import StudentItem
 import pymysql
 
+from students.spiders.student_base_spider import StudentBaseSpider
 
-class StudentsInfoSpider(scrapy.Spider):
+
+class StudentsInfoSpider(StudentBaseSpider):
     name = "students_info"
-    allowed_domains = ["60.219.165.24"]
-    start_urls = ['http://60.219.165.24/']
-
-    domain = 'http://60.219.165.24/'
-    login_url = 'loginAction.do'
     user_detail_url = 'xjInfoAction.do?oper=xjxx'
     user_info_url = 'userInfo.jsp'
-    LOGIN_STATUS = Enum('LOGIN_STATUS', 'SUCCESS WRONG_ID WRONG_PASS')
     FIRST_TIME_RUNNING = True
 
     def start_requests(self):
         if self.FIRST_TIME_RUNNING:
             self.FIRST_TIME_RUNNING = False
-            for sid in (list(range(2014020000, 2014040000)) +
-                            list(range(2015020000, 2015040000)) +
-                            list(range(2016020000, 2016040000))):
+            for sid in (list(range(2014020000, 2014040000))
+                            + list(range(2015020000, 2015040000))
+                            + list(range(2016020000, 2016040000))):
                 yield scrapy.FormRequest(self.domain + self.login_url,
                                          formdata={'zjh': str(sid), 'mm': '1'},
                                          callback=self.parse,
@@ -58,16 +54,6 @@ class StudentsInfoSpider(scrapy.Spider):
                                  meta={'sid': response.meta['sid'],
                                        'password': response.meta['password'],
                                        'cookiejar': response.meta['cookiejar']})
-
-    def _check_login_status(self, response):
-        flag_tag = response.css('td[class="errorTop"] font::text').extract_first()
-        if flag_tag is None:
-            return self.LOGIN_STATUS.SUCCESS
-        else:
-            if flag_tag.find('证件号不存在') != -1:
-                return self.LOGIN_STATUS.WRONG_ID
-            else:
-                return self.LOGIN_STATUS.WRONG_PASS
 
     def _parse_user_detail(self, response):
         def extract_with_css(query):
