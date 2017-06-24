@@ -61,14 +61,16 @@ DEFAULT_REQUEST_HEADERS = {
 
 # Enable or disable extensions
 # See http://scrapy.readthedocs.org/en/latest/topics/extensions.html
-# EXTENSIONS = {
-#    'scrapy.extensions.telnet.TelnetConsole': None,
-# }
+EXTENSIONS = {
+    # 'scrapy.extensions.telnet.TelnetConsole': None,
+    'scrapy.extensions.statsmailer.StatsMailer': 500
+}
 
 # Configure item pipelines
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     'students.pipelines.StudentsPipeline': 300,
+    # 'students.pipelines.CurriculumPipeline': 300,
 
 }
 
@@ -108,3 +110,16 @@ MYSQL_DB_KWARGS = {
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
+MAIL_FROM = 'rhyspang@163.com'
+
+MAIL_HOST = 'smtp.163.com'
+
+MAIL_USER = 'rhyspang@163.com'
+
+MAIL_PASS = '***'
+
+MAIL_PORT = 25
+
+# FEED_EXPORT_ENCODING = 'GBK2312'
+
+# FEED_EXPORT_ENCODING = 'utf-8'

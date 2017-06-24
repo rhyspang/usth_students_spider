@@ -4,10 +4,11 @@
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
-
+import math
 import pymysql
 
 from students.items import Curriculum, StudentItem
+from students.semail import send_message
 
 
 class StudentsPipeline(object):
@@ -31,7 +32,6 @@ class StudentsPipeline(object):
         connection = self.connection
         with connection.cursor() as cursor:
             self.save_student(item, cursor)
-            self.save_curriculum(item, cursor)
         connection.commit()
         return item
 
@@ -75,14 +75,84 @@ class StudentsPipeline(object):
             if not has_record:
                 cursor.execute(sql_insert_sid, (item['sid'],))
 
-    @staticmethod
-    def save_curriculum(item, cursor):
+
+class CurriculumPipeline(object):
+    def __init__(self, db_config):
+        self.new_curriculum = {}
+        self.new_curriculum_count = {}
+        self.update_curriculum = {}
+        self.connection = None
+        self.db_config = db_config
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            db_config=crawler.settings.get('MYSQL_DB_KWARGS')
+        )
+
+    def open_spider(self, spider):
+        self.connection = pymysql.connect(**self.db_config)
+
+    def close_spider(self, spider):
+        self.connection.close()
+
+    def process_item(self, item, spider):
+        connection = self.connection
+        with connection.cursor() as cursor:
+            self.save_curriculum(item, cursor, spider)
+        connection.commit()
+        return item
+
+    def save_curriculum(self, item, cursor, spider):
         if not isinstance(item, Curriculum):
             return
-        sql = "INSERT INTO `curriculum` " \
-              "(`id`, `sid`, `name`, " \
-              "`credit`, `is_compulsory`, `score`) " \
-              "VALUES (%s, %s, %s, %s, %s, %s)"
+        sql_insert = "INSERT INTO `curriculum_all` " \
+                     "(`cid`, `sid`, `name`, " \
+                     "`credit`, `is_compulsory`, `score`, `is_new`) " \
+                     "VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        sql_select = "SELECT score FROM `curriculum_all` WHERE cid=%s AND sid=%s"
+        sql_update = "UPDATE `curriculum_all` SET `score`=%s WHERE cid=%s AND sid=%s"
 
-        cursor.execute(sql, (item['id'], item['sid'], item['name'],
-                             item['credit'], item['is_compulsory'], item['score']))
+        cursor.execute(sql_select, (item['cid'], item['sid']))
+        score = cursor.fetchone()
+        has_record = True if score else False
+
+        if not self.new_curriculum_count.get(item['sid']):
+            self.new_curriculum_count[item['sid']] = 1
+        else:
+            self.new_curriculum_count[item['sid']] += 1
+
+        if has_record:
+            if not math.fabs(score[0] - float(item['score'])) < 1e-5:
+                cursor.execute(sql_update, (item['score'], item['cid'], item['sid']))
+        else:
+            if self.new_curriculum.get(item['sid']):
+                self.new_curriculum[item['sid']].append(item)
+            else:
+                self.new_curriculum[item['sid']] = [item]
+            cursor.execute(sql_insert, (item['cid'], item['sid'], item['name'],
+                                        item['credit'], item['is_compulsory'], item['score'], 1))
+
+        print('*' * 60)
+
+        if self.new_curriculum_count.get(item['sid']) \
+                and self.new_curriculum_count[item['sid']] == int(item['all']):
+            if self.new_curriculum.get(item['sid']):
+                name, email = self.get_email_by_sid(item['sid'], self.connection)
+                if email.strip():
+                    send_message(email, self.new_curriculum[item['sid']], name, spider)
+                    spider.logger.debug("item['sid']" + 'send email to: ' + email)
+                else:
+                    spider.logger.debug('no email address: ' + item['sid'])
+                print('email: ' + email)
+                self.new_curriculum.pop(item['sid'])
+
+            self.new_curriculum_count.pop(item['sid'])
+
+    @classmethod
+    def get_email_by_sid(cls, sid, connection):
+        sql = "SELECT name, email FROM `students_all` WHERE sid=%s"
+        with connection.cursor() as cursor:
+            cursor.execute(sql, (sid,))
+            result = cursor.fetchone()
+            return result
