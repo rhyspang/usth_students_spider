@@ -6,7 +6,6 @@
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import math
 import pymysql
-
 from students.items import Curriculum, StudentItem
 from students.semail import send_message
 
@@ -123,8 +122,18 @@ class CurriculumPipeline(object):
             self.new_curriculum_count[item['sid']] += 1
 
         if has_record:
-            if not math.fabs(score[0] - float(item['score'])) < 1e-5:
-                cursor.execute(sql_update, (item['score'], item['cid'], item['sid']))
+            score_is_float = True
+            try:
+                float(score[0])
+            except ValueError:
+                score_is_float = False
+            if score_is_float:
+                if not math.fabs(float(score[0]) - float(item['score'])) < 1e-5:
+                    cursor.execute(sql_update, (item['score'], item['cid'], item['sid']))
+            else:
+                if score[0] != item['score']:
+                    cursor.execute(sql_update, (item['score'], item['cid'], item['sid']))
+
         else:
             if self.new_curriculum.get(item['sid']):
                 self.new_curriculum[item['sid']].append(item)

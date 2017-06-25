@@ -69,8 +69,8 @@ EXTENSIONS = {
 # Configure item pipelines
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    'students.pipelines.StudentsPipeline': 300,
-    # 'students.pipelines.CurriculumPipeline': 300,
+    # 'students.pipelines.StudentsPipeline': 300,
+    'students.pipelines.CurriculumPipeline': 300,
 
 }
 
@@ -116,7 +116,7 @@ MAIL_HOST = 'smtp.163.com'
 
 MAIL_USER = 'rhyspang@163.com'
 
-MAIL_PASS = '***'
+MAIL_PASS = 'rhyspang123'
 
 MAIL_PORT = 25
 

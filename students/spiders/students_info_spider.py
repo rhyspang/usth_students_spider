@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
-from enum import Enum
 
 import scrapy
 from students.items import StudentItem
 import pymysql
-
 from students.spiders.student_base_spider import StudentBaseSpider
 
 
@@ -77,7 +75,8 @@ class StudentsInfoSpider(StudentBaseSpider):
         request.meta['student'] = student
         yield request
 
-    def _parse_user_info(self, response):
+    @staticmethod
+    def _parse_user_info(response):
         student = response.meta['student']
         text_input = response.css('input[type=text]::attr(value)').extract()
         student['tel'] = text_input[0]
@@ -100,10 +99,10 @@ class StudentsInfoSpider(StudentBaseSpider):
 
     def load_passwords(self):
         pass_file = os.path.join(self.settings.get('BASE_PATH'), "passwords.txt")
-        with open(pass_file, 'r') as file:
-            password = file.readline()
+        with open(pass_file, 'r') as f:
+            password = f.readline()
             while password:
                 password = password.strip()
                 if password:
                     yield password
-                password = file.readline()
+                password = f.readline()
