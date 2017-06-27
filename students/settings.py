@@ -116,7 +116,7 @@ MAIL_HOST = 'smtp.163.com'
 
 MAIL_USER = 'rhyspang@163.com'
 
-MAIL_PASS = 'rhyspang123'
+MAIL_PASS = '***'
 
 MAIL_PORT = 25
 
