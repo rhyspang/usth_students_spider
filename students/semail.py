@@ -4,7 +4,8 @@
 # @Author  : rhys
 # @Software: PyCharm
 # @Project : students
-
+from email.header import Header
+from email.utils import parseaddr, formataddr
 
 from scrapy.mail import MailSender
 
@@ -91,9 +92,17 @@ def send_message(email, curriculumn_list, name, spider):
     body = body1 + title + body2 + body3
 
     mailer = MailSender.from_settings(spider.settings)
+
     subject = "出成绩了！！！"
     mailer.send(to=[email],
                 subject=subject,
                 body=body.encode('utf-8'),
                 mimetype='text/HTML',
                 cc=['rhyspang@qq.com'])
+
+
+def _format_addr(s):
+    name, addr = parseaddr(s)
+    return formataddr((
+        Header(name, 'utf-8').encode(),
+        addr.encode('utf-8') if isinstance(addr, unicode) else addr))

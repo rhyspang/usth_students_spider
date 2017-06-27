@@ -142,8 +142,6 @@ class CurriculumPipeline(object):
             cursor.execute(sql_insert, (item['cid'], item['sid'], item['name'],
                                         item['credit'], item['is_compulsory'], item['score'], 1))
 
-        print('*' * 60)
-
         if self.new_curriculum_count.get(item['sid']) \
                 and self.new_curriculum_count[item['sid']] == int(item['all']):
             if self.new_curriculum.get(item['sid']):
@@ -153,7 +151,6 @@ class CurriculumPipeline(object):
                     spider.logger.debug("item['sid']" + 'send email to: ' + email)
                 else:
                     spider.logger.debug('no email address: ' + item['sid'])
-                print('email: ' + email)
                 self.new_curriculum.pop(item['sid'])
 
             self.new_curriculum_count.pop(item['sid'])
