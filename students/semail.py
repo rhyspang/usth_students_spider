@@ -51,8 +51,11 @@ body1 = u"""
     }
     </style>
 </head>
-
 <body>
+
+"""
+
+table_header = u"""
     <!-- Table goes in the document BODY -->
     <table class="altrowstable" id="alternatecolor">
         <tr>
@@ -62,8 +65,11 @@ body1 = u"""
         </tr>
 """
 
+table_footer = u"""
+</table>
+"""
+
 footer_sec = u"""
-    </table>
 </body>
 
 </html>
@@ -71,7 +77,7 @@ footer_sec = u"""
 """
 
 title_template = u"""
-{}同学,你好:
+<strong>{}</strong>同学,你好:<br>
 """
 
 table_template = u"""
@@ -97,14 +103,16 @@ def send_message(email, new_curriculum_list, update_curriculum_list, name, spide
                                            for curriculum in update_curriculum_list])
     body = body1 + title
     if new_curriculum_list:
-        body += '新出成绩:<br>' + new_curriculum_table
+        body += u'新出成绩:<br>' + table_header + new_curriculum_table + table_footer
     if update_curriculum_list:
-        body += '更新成绩:<br>' + update_curriculum_table
+        body += u'更新成绩:<br>' + table_header + update_curriculum_table + table_footer
     body += footer_sec
 
     mailer = MailSender.from_settings(spider.settings)
 
-    subject = "出成绩了！！！"
+    subject = u"出成绩了！！！"
+
+    print(body.encode('utf-8'))
     mailer.send(to=[email],
                 subject=subject,
                 body=body.encode('utf-8'),
