@@ -62,7 +62,7 @@ body1 = u"""
         </tr>
 """
 
-body3 = u"""
+footer_sec = u"""
     </table>
 </body>
 
@@ -74,7 +74,7 @@ title_template = u"""
 {}同学,你好:
 """
 
-body2_template = u"""
+table_template = u"""
         <tr>
             <td>{}</td>
             <td>{}</td>
@@ -83,13 +83,24 @@ body2_template = u"""
 """
 
 
-def send_message(email, curriculumn_list, name, spider):
+def send_message(email, new_curriculum_list, update_curriculum_list, name, spider):
     title = title_template.format(name)
-    body2 = ''.join([body2_template.format(curriculumn['name'],
-                                           curriculumn['credit'],
-                                           curriculumn['score'])
-                     for curriculumn in curriculumn_list])
-    body = body1 + title + body2 + body3
+    if new_curriculum_list:
+        new_curriculum_table = ''.join([table_template.format(curriculum['name'],
+                                                              curriculum['credit'],
+                                                              curriculum['score'])
+                                        for curriculum in new_curriculum_list])
+    if update_curriculum_list:
+        update_curriculum_table = ''.join([table_template.format(curriculum['name'],
+                                                                 curriculum['credit'],
+                                                                 curriculum['score'])
+                                           for curriculum in update_curriculum_list])
+    body = body1 + title
+    if new_curriculum_list:
+        body += '新出成绩:<br>' + new_curriculum_table
+    if update_curriculum_list:
+        body += '更新成绩:<br>' + update_curriculum_table
+    body += footer_sec
 
     mailer = MailSender.from_settings(spider.settings)
 

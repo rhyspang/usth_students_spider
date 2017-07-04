@@ -77,8 +77,11 @@ class StudentsPipeline(object):
 
 class CurriculumPipeline(object):
     def __init__(self, db_config):
+        # 维护新查询到的课程, key:sid(学生学号) value:curriculum list(课程列表)
         self.new_curriculum = {}
+        # 维护新查询到的课程的数量, key:sid(学生学号) value:已经检索到的curriculum数量
         self.new_curriculum_count = {}
+        # 维护需要更新的课程, key:sid(学生学号) value:curriculum list(课程列表)
         self.update_curriculum = {}
         self.connection = None
         self.db_config = db_config
@@ -107,10 +110,10 @@ class CurriculumPipeline(object):
             return
         sql_insert = "INSERT INTO `curriculum_all` " \
                      "(`cid`, `sid`, `name`, " \
-                     "`credit`, `is_compulsory`, `score`, `is_new`) " \
-                     "VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                     "`credit`, `is_compulsory`, `score`, `is_new`, `update_date`) " \
+                     "VALUES (%s, %s, %s, %s, %s, %s, %s, now())"
         sql_select = "SELECT score FROM `curriculum_all` WHERE cid=%s AND sid=%s"
-        sql_update = "UPDATE `curriculum_all` SET `score`=%s WHERE cid=%s AND sid=%s"
+        sql_update = "UPDATE `curriculum_all` SET `score`=%s, `update_date`=now() WHERE cid=%s AND sid=%s"
 
         cursor.execute(sql_select, (item['cid'], item['sid']))
         score = cursor.fetchone()
@@ -121,33 +124,44 @@ class CurriculumPipeline(object):
         else:
             self.new_curriculum_count[item['sid']] += 1
 
+        # 初始化为sid对应value为空列表
+        if not self.update_curriculum.get(item['sid']):
+            self.update_curriculum[item['sid']] = []
+        if not self.new_curriculum.get(item['sid']):
+            self.new_curriculum[item['sid']] = []
+
+        # 当数据表中有该条成绩的记录
         if has_record:
             score_is_float = True
             try:
                 float(score[0])
             except ValueError:
                 score_is_float = False
+            # 如果分数类型为浮点型
             if score_is_float:
-                if not math.fabs(float(score[0]) - float(item['score'])) < 1e-5:
-                    cursor.execute(sql_update, (item['score'], item['cid'], item['sid']))
+                if math.fabs(float(score[0]) - float(item['score'])) > 1e-5:
+                    self.update_curriculum[item['sid']].append(item)
+            # 如果分数为字符类型
             else:
                 if score[0] != item['score']:
-                    cursor.execute(sql_update, (item['score'], item['cid'], item['sid']))
-
+                    self.update_curriculum[item['sid']].append(item)
+            cursor.execute(sql_update, (item['score'], item['cid'], item['sid']))
+        # 数据表中没有查询到的记录
         else:
-            if self.new_curriculum.get(item['sid']):
-                self.new_curriculum[item['sid']].append(item)
-            else:
-                self.new_curriculum[item['sid']] = [item]
+            self.new_curriculum[item['sid']].append(item)
             cursor.execute(sql_insert, (item['cid'], item['sid'], item['name'],
                                         item['credit'], item['is_compulsory'], item['score'], 1))
 
-        if self.new_curriculum_count.get(item['sid']) \
-                and self.new_curriculum_count[item['sid']] == int(item['all']):
-            if self.new_curriculum.get(item['sid']):
+        # 当成绩页面上的成绩条目都检索完时,
+        if self.new_curriculum_count[item['sid']] == int(item['all']):
+            if self.new_curriculum.get(item['sid']) or self.update_curriculum.get(item['sid']):
                 name, email = self.get_email_by_sid(item['sid'], self.connection)
                 if email.strip():
-                    send_message(email, self.new_curriculum[item['sid']], name, spider)
+                    send_message(email,
+                                 self.new_curriculum[item['sid']],
+                                 self.update_curriculum[item['sid']],
+                                 name,
+                                 spider)
                     spider.logger.debug("item['sid']" + 'send email to: ' + email)
                 else:
                     spider.logger.debug('no email address: ' + item['sid'])
