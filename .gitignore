@@ -5,3 +5,4 @@ students/spiders/__pycache__/
 *.json
 *.log
 
+dbs/
