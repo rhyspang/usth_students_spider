@@ -5,9 +5,10 @@
 # @Software: PyCharm
 # @Project : students
 
-from scrapy.mail import MailSender
 from scrapy.signalmanager import SignalManager
+from twisted.internet import reactor
 
+from students.mail.mail import MyMailSender
 from students.signals import email_sent_ok, email_sent_fail
 
 body1 = u"""
@@ -18,7 +19,11 @@ body1 = u"""
 <head>
     <meta charset="utf-8">
 
-    <!-- CSS goes in the document HEAD or added to your external stylesheet -->
+    
+</head>
+<body>
+
+<!-- CSS goes in the document HEAD or added to your external stylesheet -->
     <style type="text/css">
     table.altrowstable {
         font-family: verdana, arial, sans-serif;
@@ -51,8 +56,6 @@ body1 = u"""
         background-color: #c3dde0;
     }
     </style>
-</head>
-<body>
 
 """
 
@@ -108,23 +111,13 @@ def send_message(email, new_curriculum_list, update_curriculum_list, name, spide
         body += u'更新成绩:<br>' + table_header + update_curriculum_table + table_footer
     body += footer_sec
 
-    mailer = MailSender.from_settings(spider.settings)
+    mailer = MyMailSender.from_settings(spider.settings)
 
     subject = u"出成绩了！！！"
 
-    dfd = mailer.send(to=[email],
-                      subject=subject,
-                      body=body.encode('utf-8'),
-                      mimetype='text/HTML',
-                      cc=['rhyspang@qq.com'])
-    dfd.addCallbacks(sent_ok, sent_failed,
-                     callbackArgs=[sid],
-                     errbackArgs=[sid])
-
-
-def sent_ok(_, sid):
-    SignalManager().send_catch_log(email_sent_ok, sid=sid)
-
-
-def sent_failed(_, sid):
-    SignalManager().send_catch_log(email_sent_fail, sid=sid)
+    mailer.send(to=[email],
+                subject=subject,
+                body=body.encode('utf-8'),
+                mimetype='text/HTML',
+                cc=['rhyspang@qq.com'],
+                sid=sid)

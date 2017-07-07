@@ -36,6 +36,7 @@ class CurriculumPipeline(object):
         instance = cls(db_config=crawler.settings.get('MYSQL_DB_KWARGS'))
         sm = SignalManager()
         sm.connect(instance.add_to_db_and_pop, signal=signals.email_sent_ok)
+        sm.connect(instance.pop_items, signal=signals.email_sent_fail)
         return instance
 
     def open_spider(self, spider):
