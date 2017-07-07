@@ -70,7 +70,7 @@ EXTENSIONS = {
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     # 'students.pipelines.StudentsPipeline': 300,
-    'students.pipelines.CurriculumPipeline': 300,
+    'students.pipelines.CurriculumPipeline.CurriculumPipeline': 300,
 
 }
 

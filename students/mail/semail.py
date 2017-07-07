@@ -112,7 +112,6 @@ def send_message(email, new_curriculum_list, update_curriculum_list, name, spide
 
     subject = u"出成绩了！！！"
 
-    print(body.encode('utf-8'))
     dfd = mailer.send(to=[email],
                       subject=subject,
                       body=body.encode('utf-8'),
