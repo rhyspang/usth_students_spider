@@ -4,3 +4,6 @@
 # @Author  : rhys
 # @Software: PyCharm
 # @Project : students
+
+email_sent_ok = object()
+email_sent_fail = object()

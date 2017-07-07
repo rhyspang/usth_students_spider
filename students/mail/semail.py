@@ -4,10 +4,11 @@
 # @Author  : rhys
 # @Software: PyCharm
 # @Project : students
-from email.header import Header
-from email.utils import parseaddr, formataddr
 
 from scrapy.mail import MailSender
+from scrapy.signalmanager import SignalManager
+
+from students.signals import email_sent_ok, email_sent_fail
 
 body1 = u"""
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
@@ -60,7 +61,7 @@ table_header = u"""
     <table class="altrowstable" id="alternatecolor">
         <tr>
             <th>课程名称</th>
-            <th>学分</th>
+         
             <th>分数</th>
         </tr>
 """
@@ -77,28 +78,27 @@ footer_sec = u"""
 """
 
 title_template = u"""
-<strong>{}</strong>同学,你好:<br>
+<strong>{}</strong>,你好:<br>
 """
 
 table_template = u"""
         <tr>
             <td>{}</td>
             <td>{}</td>
-            <td>{}</td>
         </tr>
 """
 
 
-def send_message(email, new_curriculum_list, update_curriculum_list, name, spider):
+def send_message(email, new_curriculum_list, update_curriculum_list, name, spider, sid):
     title = title_template.format(name)
     if new_curriculum_list:
         new_curriculum_table = ''.join([table_template.format(curriculum['name'],
-                                                              curriculum['credit'],
+
                                                               curriculum['score'])
                                         for curriculum in new_curriculum_list])
     if update_curriculum_list:
         update_curriculum_table = ''.join([table_template.format(curriculum['name'],
-                                                                 curriculum['credit'],
+
                                                                  curriculum['score'])
                                            for curriculum in update_curriculum_list])
     body = body1 + title
@@ -113,15 +113,19 @@ def send_message(email, new_curriculum_list, update_curriculum_list, name, spide
     subject = u"出成绩了！！！"
 
     print(body.encode('utf-8'))
-    mailer.send(to=[email],
-                subject=subject,
-                body=body.encode('utf-8'),
-                mimetype='text/HTML',
-                cc=['rhyspang@qq.com'])
+    dfd = mailer.send(to=[email],
+                      subject=subject,
+                      body=body.encode('utf-8'),
+                      mimetype='text/HTML',
+                      cc=['rhyspang@qq.com'])
+    dfd.addCallbacks(sent_ok, sent_failed,
+                     callbackArgs=[sid],
+                     errbackArgs=[sid])
 
 
-def _format_addr(s):
-    name, addr = parseaddr(s)
-    return formataddr((
-        Header(name, 'utf-8').encode(),
-        addr.encode('utf-8') if isinstance(addr, unicode) else addr))
+def sent_ok(_, sid):
+    SignalManager().send_catch_log(email_sent_ok, sid=sid)
+
+
+def sent_failed(_, sid):
+    SignalManager().send_catch_log(email_sent_fail, sid=sid)
