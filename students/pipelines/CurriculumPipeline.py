@@ -134,7 +134,7 @@ class CurriculumPipeline(object):
 
     def refresh_date(self, cid, sid):
         with self.connection.cursor() as cursor:
-            cursor.execute(self.sql_update_date, cid, sid)
+            cursor.execute(self.sql_update_date, (cid, sid))
         self.connection.commit()
 
     @classmethod
