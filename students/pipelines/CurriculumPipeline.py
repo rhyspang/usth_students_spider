@@ -21,6 +21,8 @@ class CurriculumPipeline(object):
     sql_update = "UPDATE `curriculum_all` SET `score`=%s, `update_date`=now() WHERE cid=%s AND sid=%s"
     sql_select = "SELECT score FROM `curriculum_all` WHERE cid=%s AND sid=%s"
 
+    sql_update_date = "UPDATE `curriculum_all` SET `update_date`=now() WHERE cid=%s AND sid=%s"
+
     def __init__(self, db_config):
         # 维护新查询到的课程, key:sid(学生学号) value:curriculum list(课程列表)
         self.new_curriculum = {}
@@ -82,11 +84,14 @@ class CurriculumPipeline(object):
             if score_is_float:
                 if math.fabs(float(score[0]) - float(item['score'])) > 1e-5:
                     self.update_curriculum[item['sid']].append(item)
+                else:
+                    self.refresh_date(item['cid'], item['sid'])
             # 如果分数为字符类型
             else:
                 if score[0] != item['score']:
                     self.update_curriculum[item['sid']].append(item)
-                    # cursor.execute(sql_update, (item['score'], item['cid'], item['sid']))
+                else:
+                    self.refresh_date(item['cid'], item['sid'])
         # 数据表中没有查询到的记录
         else:
             self.new_curriculum[item['sid']].append(item)
@@ -126,6 +131,11 @@ class CurriculumPipeline(object):
     def pop_items(self, sid):
         self.new_curriculum.pop(sid)
         self.update_curriculum.pop(sid)
+
+    def refresh_date(self, cid, sid):
+        with self.connection.cursor() as cursor:
+            cursor.execute(self.sql_update_date, cid, sid)
+        self.connection.commit()
 
     @classmethod
     def get_email_by_sid(cls, sid, connection):
